@@ -20,7 +20,7 @@ stdenv.mkDerivation {
     if [ ! -f "minecraft-fabric-server-launcher.conf" ]; then
       echo "Config is needed. minecraft-fabric-server-launcher.conf is created. Please fill this file"
       
-      echo "# Get the version from https://files.minecraftfabric.net" > minecraft-fabric-server-launcher.conf
+      echo "# Get the version from https://fabricmc.net/use/" > minecraft-fabric-server-launcher.conf
       echo "fabricVersion=" >> minecraft-fabric-server-launcher.conf
       echo "jvmOpts=" >> minecraft-fabric-server-launcher.conf
       exit 1

@@ -5,7 +5,8 @@ with lib;
 let
   cfg = config.services.minecraft-fabric-server;
 
-  launcherPkg = import ../pkgs/minecraft-fabric-server-launcher { inherit pkgs; };
+  launcherPkg = import ../pkgs/minecraft-fabric-server-launcher.nix { inherit pkgs; };
+  modpackBuilder = import ../lib/fabric-modpack-builder.nix { inherit pkgs; };
 
   # We don't allow eula=false anyways
   eulaFile = builtins.toFile "eula.txt" ''
@@ -238,6 +239,38 @@ in {
           // TODO description for mods and add helpers for generating the fetches
         '';
       };
+
+      hostModpack = mkOption {
+        type = with types; submodule {
+          options = {
+            enable = mkOption {
+              type = bool;
+              default = false;
+            };
+            hostname = mkOption {
+              type = str;
+            };
+            location = mkOption {
+              type = strMatching
+                "\/(.+\/)?" // {
+                  description = "full path starting and ending with /";
+                };
+              default = "/";
+            };
+          };
+        };
+        default = {};
+        example = literalExpression ''
+          {
+            enable = true;
+            hostname = "foo.bar";
+            location = "/path/";
+          }
+        '';
+        description = ''
+          This option creates a new virtual host for nginx. Further configuration is possible with services.nginx.virtualHosts
+        '';
+      };
     };
   };
 
@@ -307,6 +340,14 @@ in {
       allowedUDPPorts = [ defaultServerPort ];
       allowedTCPPorts = [ defaultServerPort ];
     });
+
+    services.nginx.virtualHosts = mkIf cfg.hostModpack.enable {
+      "${cfg.hostModpack.hostname}" = {
+        locations."${cfg.hostModpack.location}" = {
+          alias = "${modpackBuilder { inherit (cfg) mods fabricLoaderVersion minecraftVersion; }}/";
+        };
+      };
+    };
 
     assertions = [
       { assertion = cfg.eula;

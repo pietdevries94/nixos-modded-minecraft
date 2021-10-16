@@ -48,6 +48,7 @@ let
     then cfg.serverProperties."query.port" or 25565
     else null;
 
+  linkMods = type: modSet: concatStringsSep "\n" (attrsets.mapAttrsToList (name: mod: "ln -s ${mod.src} mods/${name}.jar") (attrsets.filterAttrs (name: mod: mod.${type}) modSet));
 in {
   options = {
     services.minecraft-fabric-server = {
@@ -202,6 +203,41 @@ in {
         '';
         example = literalExpression "0.17.1";
       };
+
+      mods = mkOption {
+        type = with types; attrsOf (submodule {
+          options = {
+            client = mkOption {
+              type = bool;
+              default = false;
+            };
+            server = mkOption {
+              type = bool;
+              default = false;
+            };
+            src = mkOption {
+              type = path;
+            };
+          };
+        });
+        default = {};
+        example = literalExpression ''
+          {
+            fabric-api = {
+              client = true;
+              server = true;
+              src = pkgs.fetchurl {
+                name = "fabric-api-0.40.8-1.17.jar";
+                url = https://media.forgecdn.net/files/3486/63/fabric-api-0.40.8%2B1.17.jar;
+                sha256 = "0c6zxi5p6k4shwn0ly87rhsz9vsm98c5g7pg31rc04vfwyvispj0";
+              };
+            };
+          }
+        '';
+        description = ''
+          // TODO description for mods and add helpers for generating the fetches
+        '';
+      };
     };
   };
 
@@ -231,6 +267,9 @@ in {
       preStart = ''
         ln -sf ${eulaFile} eula.txt
       '' + (if cfg.declarative then ''
+        rm -rf mods
+        mkdir -p mods
+        ${linkMods "server" cfg.mods}
 
         if [ -e .declarative ]; then
 

@@ -1,0 +1,7 @@
+#! /usr/bin/env nix-shell
+#! nix-shell -i bash -p deno
+
+fp=$(realpath $0)
+dir=$(dirname $fp)
+
+deno run -A $dir/generate-mods.ts

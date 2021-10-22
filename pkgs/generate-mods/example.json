@@ -1,0 +1,12 @@
+{
+  "minecraftVersion": "1.17.1",
+  "mods": [
+    {
+      "name": "fabric-api",
+      "source": "curseforge",
+      "id": 306612,
+      "server": true,
+      "client": true
+    }
+  ]
+}

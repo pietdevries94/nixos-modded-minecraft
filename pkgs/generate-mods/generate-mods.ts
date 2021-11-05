@@ -1,5 +1,20 @@
-// needed for the language server
-export { };
+import yargs from 'https://deno.land/x/yargs@v17.2.1-deno/deno.ts'
+import { Arguments } from 'https://deno.land/x/yargs@v17.2.1-deno/deno-types.ts'
+import { bold } from 'https://deno.land/x/nanocolors@0.1.12/mod.ts';
+
+yargs(Deno.args)
+  .command('generate <source> <target>', 'generates the nix output for the json to target path', (yargs: any) => {
+    return yargs.positional('source', {
+      describe: 'the source json'
+    }).positional('target', {
+      describe: 'the target file'
+    })
+  }, (argv: Arguments) => {
+    generateNix(argv.source, argv.target)
+  })
+  .strictCommands()
+  .demandCommand(1)
+  .parse()
 
 interface JsonInput {
   minecraftVersion: string,
@@ -26,7 +41,7 @@ async function getFileFromCurseforgeForVersionAndMod(version: string, mod: numbe
   const files: File[] = await jsonResponse.json();
 
   const sortedFiles = files.sort((a, b) => b.id - a.id)
-  let file = sortedFiles.find(f => f.gameVersion.includes(version))
+  const file = sortedFiles.find(f => f.gameVersion.includes(version))
 
   if (file) return file;
 
@@ -38,48 +53,46 @@ async function getFileFromCurseforgeForVersionAndMod(version: string, mod: numbe
 }
 
 async function getHash(url: string): Promise<string> {
-  // @ts-ignore Deno is defined, but vscode isn't happy yet
   const p = Deno.run({ cmd: ["nix-prefetch-url", url], stdout: 'piped', });
   const buf = await p.output()
   const out = new TextDecoder().decode(buf)
   return out.replace(/[\n\r]/g, '');
 }
 
-async function getJsonInput(): Promise<JsonInput> {
-  // @ts-ignore Deno is defined, but vscode isn't happy yet
-  const text = await Deno.readTextFile(Deno.args[0])
+async function getJsonInput(jsonPath: string): Promise<JsonInput> {
+  const text = await Deno.readTextFile(jsonPath)
   return JSON.parse(text)
 }
 
-const jsonInput = await getJsonInput()
+async function generateNix(jsonPath: string, outputPath: string) {
+  const jsonInput = await getJsonInput(jsonPath)
 
-const modPromises = jsonInput.mods.map(async mod => {
-  let file: File
-  switch (mod.source) {
-    case "curseforge":
-      file = await getFileFromCurseforgeForVersionAndMod(jsonInput.minecraftVersion, 306612)
-  }
+  const modPromises = jsonInput.mods.map(async mod => {
+    console.log(`Preparing ${bold('%s')} mod: ${bold('%s')}`, mod.source, mod.name)
 
-  return `
-  ${mod.name} = {
-    client = ${mod.client ? "true" : "false"};
-    server = ${mod.server ? "true" : "false"};
-    src = pkgs.fetchurl {
-      url = ${file.downloadUrl};
-      sha256 = "${await getHash(file.downloadUrl)}";
-    };
-  };`
-})
-
-const res = `{ pkgs }:
+    let file: File
+    switch (mod.source) {
+      case "curseforge":
+        file = await getFileFromCurseforgeForVersionAndMod(jsonInput.minecraftVersion, 306612)
+    }
+  
+    return `
+    ${mod.name} = {
+      client = ${mod.client ? "true" : "false"};
+      server = ${mod.server ? "true" : "false"};
+      src = pkgs.fetchurl {
+        url = ${file.downloadUrl};
+        sha256 = "${await getHash(file.downloadUrl)}";
+      };
+    };`
+  })
+  
+  const res = `{ pkgs }:
 
 [${(await Promise.all(modPromises)).join()}
 ]
 `
-
-// @ts-ignore Deno is defined, but vscode isn't happy yet
-if (Deno.args[1])
-  // @ts-ignore Deno is defined, but vscode isn't happy yet
-  Deno.writeTextFile(Deno.args[1], res)
-else
-  console.log(res)
+  console.log("Succesfully preloaded all mods")
+  console.log(`Writing output to ${bold('%s')}`, outputPath)
+  Deno.writeTextFile(outputPath, res)
+}

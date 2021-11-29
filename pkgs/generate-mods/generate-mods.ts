@@ -3,6 +3,7 @@ import { Arguments } from 'https://deno.land/x/yargs@v17.2.1-deno/deno-types.ts'
 import { bold } from 'https://deno.land/x/nanocolors@0.1.12/mod.ts';
 
 yargs(Deno.args)
+  .scriptName("generate-mods")
   .command('generate <source> <target>', 'generates the nix output for the json to target path', (yargs: any) => {
     return yargs.positional('source', {
       describe: 'the source json'
@@ -73,24 +74,24 @@ async function generateNix(jsonPath: string, outputPath: string) {
     let file: File
     switch (mod.source) {
       case "curseforge":
-        file = await getFileFromCurseforgeForVersionAndMod(jsonInput.minecraftVersion, 306612)
+        file = await getFileFromCurseforgeForVersionAndMod(jsonInput.minecraftVersion, mod.id)
     }
   
     return `
-    ${mod.name} = {
-      client = ${mod.client ? "true" : "false"};
-      server = ${mod.server ? "true" : "false"};
-      src = pkgs.fetchurl {
-        url = ${file.downloadUrl};
-        sha256 = "${await getHash(file.downloadUrl)}";
-      };
-    };`
+  ${mod.name} = {
+    client = ${mod.client ? "true" : "false"};
+    server = ${mod.server ? "true" : "false"};
+    src = pkgs.fetchurl {
+      url = ${file.downloadUrl};
+      sha256 = "${await getHash(file.downloadUrl)}";
+    };
+  };`
   })
   
   const res = `{ pkgs }:
 
-[${(await Promise.all(modPromises)).join()}
-]
+{${(await Promise.all(modPromises)).join('')}
+}
 `
   console.log("Succesfully preloaded all mods")
   console.log(`Writing output to ${bold('%s')}`, outputPath)

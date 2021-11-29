@@ -58,7 +58,7 @@ in {
         type = types.bool;
         default = false;
         description = ''
-          If enabled, start a Minecraft Server modde with fabric.
+          If enabled, start a Minecraft Server modded with fabric.
           The server data will be loaded from and saved to
           <option>services.minecraft-fabric-server.dataDir</option>.
         '';
@@ -344,10 +344,13 @@ in {
     services.nginx.virtualHosts = mkIf cfg.hostModpack.enable {
       "${cfg.hostModpack.hostname}" = {
         locations."${cfg.hostModpack.location}" = {
-          alias = "${modpackBuilder { inherit (cfg) mods fabricLoaderVersion minecraftVersion; }}/";
+          alias = "${modpackBuilder { inherit (cfg) mods fabricLoaderVersion minecraftVersion hostModpack; }}/";
+          tryFiles = "$uri $uri/ /version-outdated.txt";
         };
       };
     };
+
+    environment.systemPackages = [ (import ../pkgs/generate-mods {inherit pkgs;}) ];
 
     assertions = [
       { assertion = cfg.eula;

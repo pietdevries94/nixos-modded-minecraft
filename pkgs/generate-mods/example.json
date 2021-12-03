@@ -4,8 +4,22 @@
     {
       "name": "fabric-api",
       "source": "curseforge",
-      "id": 306612,
+      "value": 306612,
       "server": true,
+      "client": true
+    },
+    {
+      "name": "better-enchanted-books",
+      "source": "directurl",
+      "value": "https://github.com/Fourmisain/BetterEnchantedBooks/releases/download/1.2.9/better-enchanted-books-1.17-1.2.9.jar",
+      "server": false,
+      "client": true
+    },
+    {
+      "name": "sodium",
+      "source": "modrinth",
+      "value": "AANobbMI",
+      "server": false,
       "client": true
     }
   ]

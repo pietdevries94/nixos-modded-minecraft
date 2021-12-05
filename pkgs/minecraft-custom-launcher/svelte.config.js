@@ -18,6 +18,12 @@ const config = {
 		target: '#svelte',
 		files: {
 			template: 'src/app.html'
+		},
+		vite: {
+			ssr: {
+				// bundle your SSR build into a single JavaScript file (Treat all dependencies as noExternal. Throw an error if any Node.js built-ins are imported)
+				noExternal: true
+			}
 		}
 	}
 };

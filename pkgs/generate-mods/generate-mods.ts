@@ -105,7 +105,9 @@ async function getUrlFromModrinthForVersionAndMod(version: string, mod: string):
 }
 
 async function getHash(url: string): Promise<string> {
-  const p = Deno.run({ cmd: ["nix-prefetch-url", url], stdout: 'piped', });
+  const safeUrl = url.replace(" ", "%20")
+  const name = safeUrl.substring(safeUrl.lastIndexOf('/') + 1).replace("%20", "_")
+  const p = Deno.run({ cmd: ["nix-prefetch-url", safeUrl, '--name', name], stdout: 'piped', });
   const buf = await p.output()
   const out = new TextDecoder().decode(buf)
   return out.replace(/[\n\r]/g, '');
@@ -137,6 +139,9 @@ async function generateNix(jsonPath: string, outputPath: string) {
       case "directurl":
         url = String(mod.value)
     }
+
+    url = url.replace(" ", "%20")
+    const name = url.substring(url.lastIndexOf('/') + 1).replace("%20", "_")
   
     return `
   ${mod.name} = {
@@ -145,6 +150,7 @@ async function generateNix(jsonPath: string, outputPath: string) {
     src = pkgs.fetchurl {
       url = ${url};
       sha256 = "${await getHash(url)}";
+      name = "${name}";
     };
   };`
   })
